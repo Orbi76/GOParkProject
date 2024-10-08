@@ -1,117 +1,139 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, { useState } from 'react';
+import { PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, MapPressEvent, UrlTile } from 'react-native-maps';
 import {
   SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
-  Text,
-  useColorScheme,
   View,
+  Text,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const [selectedLocation, setSelectedLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const [address, setAddress] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Handle user tapping on the map
+  const handleMapPress = (event: MapPressEvent) => {
+    const { coordinate } = event.nativeEvent;
+    setSelectedLocation(coordinate);
+    reverseGeocode(coordinate.latitude, coordinate.longitude);
+  };
+
+  // Reverse geocode coordinates to an address using OpenStreetMap's Nominatim API
+  const reverseGeocode = async (latitude: number, longitude: number) => {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      
+      if (data && data.display_name) {
+        setAddress(data.display_name);
+        setErrorMessage(null); // Clear any previous error
+      } else {
+        setAddress('Unable to retrieve address');
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+      setErrorMessage('Error fetching address');
+    }
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <SafeAreaView style={styles.container}>
+      <View style={styles.mapContainer}>
+        <MapView
+            style={styles.map}
+            provider={PROVIDER_DEFAULT}
+            initialRegion={{
+                latitude: 47.5068428, // Example coordinates
+                longitude: 19.0469664,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+            }}
+            onPress={handleMapPress}
+            >
+            <UrlTile
+                urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maximumZ={19}
+                subdomains={['a', 'b', 'c']}
+            />
+            {selectedLocation && (
+            <Marker
+                coordinate={selectedLocation}
+                title="Selected Location"
+                description={`Lat: ${selectedLocation.latitude}, Lng: ${selectedLocation.longitude}`}
+            />
+            )}
+        </MapView>
+
+      </View>
+      {/* Display selected coordinates */}
+      {selectedLocation && (
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>
+            Selected Coordinates: 
+            {' '}
+            {selectedLocation.latitude}, {selectedLocation.longitude}
+          </Text>
         </View>
-      </ScrollView>
+      )}
+      {/* Display fetched address */}
+      {address && (
+        <View style={styles.addressContainer}>
+          <Text style={styles.addressText}>Address: {address}</Text>
+        </View>
+      )}
+      {/* Display error message if any */}
+      {errorMessage && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  mapContainer: {
+    flex: 1,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  map: {
+    ...StyleSheet.absoluteFillObject,
   },
-  highlight: {
-    fontWeight: '700',
+  infoContainer: {
+    padding: 10,
+    backgroundColor: 'white',
+  },
+  infoText: {
+    fontSize: 16,
+  },
+  addressContainer: {
+    padding: 10,
+    backgroundColor: 'lightgray',
+  },
+  addressText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorContainer: {
+    padding: 10,
+    backgroundColor: 'red',
+  },
+  errorText: {
+    fontSize: 16,
+    color: 'white',
   },
 });
 

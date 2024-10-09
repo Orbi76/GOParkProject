@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import MapView, { Marker, MapPressEvent } from 'react-native-maps';
-import { View, StyleSheet, Text, Modal, Button } from 'react-native';
+import { View, StyleSheet, Text, Modal, Button, Linking, Alert } from 'react-native';
 import fetchParkingSpots from './utils/fetchParkingSpots'; // Import your parking fetch function
 
 function App(): React.JSX.Element {
@@ -36,6 +36,19 @@ function App(): React.JSX.Element {
     setSelectedParkingSpot(spot);
     setModalVisible(true);
   };
+
+  const navigateToSpot = () => {
+    if (selectedParkingSpot) {
+      const { latitude, longitude, name } = selectedParkingSpot;
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
+
+      Linking.openURL(url).catch((err) =>
+        Alert.alert('Error', 'Failed to open navigation: ' + err.message)
+      );
+    }
+  };
+
+
 
   return (
     <View style={styles.container}>
@@ -84,6 +97,10 @@ function App(): React.JSX.Element {
             <Text style={styles.modalText}>
               Coordinates: {selectedParkingSpot.latitude}, {selectedParkingSpot.longitude}
             </Text>
+
+            {/* Navigate Button */}
+            <Button title="Navigate to this spot" onPress={navigateToSpot} />  
+                      
             <Button title="Close" onPress={() => setModalVisible(false)} />
           </View>
         </Modal>

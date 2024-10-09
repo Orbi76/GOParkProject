@@ -1,104 +1,59 @@
+// App.tsx
 import React, { useState } from 'react';
-import { PROVIDER_DEFAULT, PROVIDER_GOOGLE } from 'react-native-maps';
-import MapView, { Marker, MapPressEvent, UrlTile } from 'react-native-maps';
-import {
-  SafeAreaView,
-  StyleSheet,
-  View,
-  Text,
-} from 'react-native';
+import MapView, { Marker, MapPressEvent } from 'react-native-maps';
+import { View, StyleSheet } from 'react-native';
+import fetchParkingSpots from './utils/fetchParkingSpots'; // Import your parking fetch function
+import ParkingMarker from './components/ParkingMarker';
 
 function App(): React.JSX.Element {
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
+  
+  const [parkingSpots, setParkingSpots] = useState<
+    { id: string; name: string; latitude: number; longitude: number }[]
+  >([]);
 
-  const [address, setAddress] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Handle user tapping on the map
   const handleMapPress = (event: MapPressEvent) => {
     const { coordinate } = event.nativeEvent;
     setSelectedLocation(coordinate);
-    reverseGeocode(coordinate.latitude, coordinate.longitude);
-  };
 
-  // Reverse geocode coordinates to an address using OpenStreetMap's Nominatim API
-  const reverseGeocode = async (latitude: number, longitude: number) => {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
-    
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      const data = await response.json();
-      
-      if (data && data.display_name) {
-        setAddress(data.display_name);
-        setErrorMessage(null); // Clear any previous error
-      } else {
-        setAddress('Unable to retrieve address');
-      }
-    } catch (error) {
-      console.error('Fetch error:', error);
-      setErrorMessage('Error fetching address');
-    }
+    fetchParkingSpots(coordinate.latitude, coordinate.longitude).then((spots) => {
+      setParkingSpots(spots);
+    });
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.mapContainer}>
-        <MapView
-            style={styles.map}
-            provider={PROVIDER_DEFAULT}
-            initialRegion={{
-                latitude: 47.5068428, // Example coordinates
-                longitude: 19.0469664,
-                latitudeDelta: 0.05,
-                longitudeDelta: 0.05,
-            }}
-            onPress={handleMapPress}
-            >
-            <UrlTile
-                urlTemplate="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                maximumZ={19}
-                subdomains={['a', 'b', 'c']}
-            />
-            {selectedLocation && (
-            <Marker
-                coordinate={selectedLocation}
-                title="Selected Location"
-                description={`Lat: ${selectedLocation.latitude}, Lng: ${selectedLocation.longitude}`}
-            />
-            )}
-        </MapView>
+    <View style={styles.container}>
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: 47.5068428, // Coordinates in Budapest
+          longitude: 19.0469664,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        }}
+        onPress={handleMapPress}
+      >
+        {selectedLocation && (
+          <Marker
+            coordinate={selectedLocation}
+            title="Selected Location"
+          />
+        )}
 
-      </View>
-      {/* Display selected coordinates */}
-      {selectedLocation && (
-        <View style={styles.infoContainer}>
-          <Text style={styles.infoText}>
-            Selected Coordinates: 
-            {' '}
-            {selectedLocation.latitude}, {selectedLocation.longitude}
-          </Text>
-        </View>
-      )}
-      {/* Display fetched address */}
-      {address && (
-        <View style={styles.addressContainer}>
-          <Text style={styles.addressText}>Address: {address}</Text>
-        </View>
-      )}
-      {/* Display error message if any */}
-      {errorMessage && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      )}
-    </SafeAreaView>
+        {parkingSpots.map(spot => (
+          <ParkingMarker
+            key={spot.id}
+            id={spot.id}
+            name={spot.name}
+            latitude={spot.latitude}
+            longitude={spot.longitude}
+          />
+        ))}
+      </MapView>
+    </View>
   );
 }
 
@@ -106,34 +61,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  mapContainer: {
-    flex: 1,
-  },
   map: {
     ...StyleSheet.absoluteFillObject,
-  },
-  infoContainer: {
-    padding: 10,
-    backgroundColor: 'white',
-  },
-  infoText: {
-    fontSize: 16,
-  },
-  addressContainer: {
-    padding: 10,
-    backgroundColor: 'lightgray',
-  },
-  addressText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  errorContainer: {
-    padding: 10,
-    backgroundColor: 'red',
-  },
-  errorText: {
-    fontSize: 16,
-    color: 'white',
   },
 });
 

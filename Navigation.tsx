@@ -5,9 +5,18 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import App from './App'; // Your main map screen
 import DirectionsScreen from './DirectionsScreen'; // Screen to show directions
 
-const Stack = createNativeStackNavigator();
+export type RootStackParamList = {
+    Home: undefined;
+    Directions: { 
+        origin: { latitude: number; longitude: number }; 
+        destination: { id: string; name: string; latitude: number; longitude: number }; 
+    };   
 
-const Navigation = () => {
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export default function Navigation() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Home">
@@ -17,5 +26,3 @@ const Navigation = () => {
     </NavigationContainer>
   );
 };
-
-export default Navigation;

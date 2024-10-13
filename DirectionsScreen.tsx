@@ -1,49 +1,59 @@
 // DirectionsScreen.tsx
 import React from 'react';
 import MapView, { Marker, Polyline } from 'react-native-maps';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Alert } from 'react-native';
+import { RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from './Navigation';
+
+type DirectionsScreenRouteProp = RouteProp<RootStackParamList, 'Directions'>;
+
 
 interface DirectionsScreenProps {
-  route: {
-    params: {
-      destination: {
-        latitude: number;
-        longitude: number;
-      };
-      origin: {
-        latitude: number;
-        longitude: number;
-      };
-    };
-  };
+    route: DirectionsScreenRouteProp;
 }
 
 const DirectionsScreen: React.FC<DirectionsScreenProps> = ({ route }) => {
-  const { destination, origin } = route.params;
+  const { origin, destination } = route.params;
 
-  // Dummy route data for demonstration
+  if (!destination) {
+    Alert.alert('Error', 'No parking spot data found.');
+    return null;
+  }
+  if (!origin) {
+    Alert.alert('Error', 'No origin location data found.');
+    return null;
+  }
+
+
+
   const routeCoordinates = [
-    origin,
-    destination,
+    { latitude: origin.latitude, longitude: origin.longitude },
+    { latitude: destination.latitude, longitude: destination.longitude },
   ];
+  
+
+  console.log('Route Coordinates:', routeCoordinates);
+  console.log('Origin:', origin);
+  console.log('Destination:', destination);
+
 
   return (
     <View style={styles.container}>
       <MapView
         style={styles.map}
         initialRegion={{
-          latitude: origin.latitude,
-          longitude: origin.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
+            latitude: (origin.latitude + destination.latitude) / 2,
+            longitude: (origin.longitude + destination.longitude) / 2,
+            latitudeDelta: Math.abs(origin.latitude - destination.latitude) + 0.01,
+            longitudeDelta: Math.abs(origin.longitude - destination.longitude) + 0.01,
         }}
       >
         <Marker coordinate={origin} title="Your Location" />
-        <Marker coordinate={destination} title="Parking Spot" />
+        <Marker coordinate={destination} title={destination.name} />
 
         <Polyline
           coordinates={routeCoordinates}
-          strokeColor="#000" // You can choose your color
+          strokeColor="#FF0000" // You can choose your color
           strokeWidth={6}
         />
       </MapView>

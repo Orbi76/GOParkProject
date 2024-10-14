@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key></key>
+	<string></string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
@@ -22,19 +24,22 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSApplicationCategoryType</key>
+	<string></string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>MBXAccesToken</key>
+	<string>sk.eyJ1Ijoib3JiaTc2IiwiYSI6ImNtMjg2cDE5ZzFkZ3QycXNhb2NhMWZ4cnoifQ.ySU3RaO-GI99Cd0u6_rMMQ</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need access to your location to show maps.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need access to your location to show maps.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need access to your location to show maps.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import MapView, { Marker, MapPressEvent } from 'react-native-maps';
+import MapView, { Marker, Polyline, MapPressEvent } from 'react-native-maps';
 import { View, StyleSheet, Text, Modal, Button, Alert } from 'react-native';
 import fetchParkingSpots from './utils/fetchParkingSpots'; // Import your parking fetch function
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './Navigation';
+import axios from 'axios';
 import MapboxGL from '@react-native-mapbox-gl/maps';
 import MapboxConfig from './mapboxConfig';
 
-MapboxGL.setAccessToken(MapboxConfig.accessToken);
+//MapboxGL.setAccessToken(MapboxConfig.accessToken);
+// MapboxGL.setAccessToken('pk.eyJ1Ijoib3JiaTc2IiwiYSI6ImNtMjdwbjVkMDFjMWYyaXF3YWRtbnYydTIifQ.ykxUX6zXYv2noQJ21K2wPQ');
 
 
 
@@ -16,12 +18,21 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 
 function App(): React.JSX.Element {
+  
   const navigation = useNavigation<NavigationProp>();
 
   const [selectedLocation, setSelectedLocation] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
+
+  const [routeCoordinates, setRouteCoordinates] = useState<{
+    latitude: number;
+    longitude: number;
+
+  }[]>([]);
+
+  const [route, setRoute] = useState(null);
 
   const [parkingSpots, setParkingSpots] = useState<
     { id: string; name: string; latitude: number; longitude: number }[]
@@ -73,30 +84,82 @@ function App(): React.JSX.Element {
     setModalVisible(true);
   };
 
+    // Fetch directions using Mapbox Directions API and set routeCoordinates
+    const fetchDirections = async (destination: { latitude: number; longitude: number }) => {
+      if (!selectedLocation) {
+  
+      Alert.alert('Error', 'Please select a starting point');
+      return;
+    }
+
+          // Check if destination contains valid latitude and longitude
+ //   if (!destination || !destination.latitude || !destination.longitude) {
+    if (!destination || typeof destination.latitude !== 'number' || typeof destination.longitude !== 'number') {
+    
+      Alert.alert('Error', 'Invalid destination coordinates');
+      return;
+    }
+
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${selectedLocation.longitude},${selectedLocation.latitude};${destination.longitude},${destination.latitude}?geometries=geojson&access_token=${MapboxConfig.accessToken}`;
+
+    try {
+      const response = await axios.get(url);
+      // const directions = response.data.routes[0].geometry.coordinates;
+      const directions: [number, number][][] = response.data.routes[0]?.geometry?.coordinates; // Explicitly typing the directions array
+
+      if (!directions || directions.length === 0 ){
+        Alert.alert('Error', 'No directions found');
+        return;
+      }
+
+    // Mapping coordinates to the correct latitude and longitude structure
+      const routeCoords = directions.flatMap((coords: [number, number][]) => 
+      coords.map((coordinate: [number, number]) =>   ({
+      latitude: coordinate[1],  // The second element is latitude
+      longitude: coordinate[0], // The first element is longitude
+      }))
+    );
+
+      // const routeCoords = directions.map((latitude, longitude) => ({
+      //   latitude,
+      //   longitude,
+      // }));
+
+      setRouteCoordinates(routeCoords); // Set the processed route coordinates
+      
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      Alert.alert('Error', 'Failed to fetch directions: ' + errorMessage);
+    }
+  };
+
+
+
+
 
   const navigateToSpot = () => {
     if (selectedParkingSpot && selectedLocation) {
-      navigation.navigate('Directions', { 
-        origin: { 
-          latitude: selectedLocation.latitude, 
-          longitude: selectedLocation.longitude 
-        },
-        destination: { 
-          id: selectedParkingSpot.id, 
-          name: selectedParkingSpot.name, 
-          latitude: selectedParkingSpot.latitude, 
-          longitude: selectedParkingSpot.longitude 
-        },
-      });
+      fetchDirections(selectedParkingSpot);
+
+
+      // navigation.navigate('Directions', { 
+      //   origin: { 
+      //     latitude: selectedLocation.latitude, 
+      //     longitude: selectedLocation.longitude 
+      //   },
+      //   destination: { 
+      //     id: selectedParkingSpot.id, 
+      //     name: selectedParkingSpot.name, 
+      //     latitude: selectedParkingSpot.latitude, 
+      //     longitude: selectedParkingSpot.longitude 
+      //   },
+      // });
       setModalVisible(false); // Close the modal once navigation starts
     }else {
       Alert.alert('Error', 'Could not get the origin or destination data.');
     }
   };
   
-  
-
-
 
   return (
     <View style={styles.container}>
@@ -129,6 +192,17 @@ function App(): React.JSX.Element {
             onPress={() => handleParkingMarkerPress(spot)} // Handle marker press
           />
         ))}
+
+        {/* Conditionally render the Polyline if routeCoordinates is not empty */}
+        {routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor="#000" // Customize color here
+            strokeWidth={3}     // Customize width here
+          />
+        )}
+
+
       </MapView>
 
       {/* Confirmation Modal for Selected Location */}
